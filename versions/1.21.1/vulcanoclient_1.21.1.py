@@ -999,8 +999,16 @@ def vulcanoclient_1_21_1_lunar_installer():
     try:
         progress_window, progress_bar, label, console = create_progress_window("VulcanoClient Installatie")
         
+        # Voeg een print functie toe die naar beide outputs schrijft
+        def log_message(message):
+            print(message)  # Naar Python console
+            if console:
+                update_progress(progress_bar, label, progress_bar['value'], None, 
+                              console, message)  # Naar GUI console
+
         update_progress(progress_bar, label, 10, "Mappen aanmaken...", 
                        console, "Start met aanmaken van benodigde mappen...")
+        
         lunar_path = os.path.expanduser("~\\.lunarclient")
         lunar_profiles_path = os.path.join(lunar_path, "profiles")
         lunar_profiles_lunar_path = os.path.join(lunar_profiles_path, "lunar")
@@ -1013,58 +1021,58 @@ def vulcanoclient_1_21_1_lunar_installer():
         # Controleer of de map bestaat, zo niet, maak deze aan
         if not os.path.exists(lunar_path):
             os.makedirs(lunar_path)
-            print(f"De map '{lunar_path}' is aangemaakt.")
+            log_message(f"De map '{lunar_path}' is aangemaakt.")
         else:
-            print(f"De map '{lunar_path}' bestaat al.")
+            log_message(f"De map '{lunar_path}' bestaat al.")
 
         # Controleer of de map bestaat, zo niet, maak deze aan
         if not os.path.exists(lunar_profiles_path):
             os.makedirs(lunar_profiles_path)
-            print(f"De map '{lunar_profiles_path}' is aangemaakt.")
+            log_message(f"De map '{lunar_profiles_path}' is aangemaakt.")
         else:
-            print(f"De map '{lunar_profiles_path}' bestaat al.")
+            log_message(f"De map '{lunar_profiles_path}' bestaat al.")
 
         # Controleer of de map bestaat, zo niet, maak deze aan
         if not os.path.exists(lunar_profiles_lunar_path):
             os.makedirs(lunar_profiles_lunar_path)
-            print(f"De map '{lunar_profiles_lunar_path}' is aangemaakt.")
+            log_message(f"De map '{lunar_profiles_lunar_path}' is aangemaakt.")
         else:
-            print(f"De map '{lunar_profiles_lunar_path}' bestaat al.")
+            log_message(f"De map '{lunar_profiles_lunar_path}' bestaat al.")
 
         # Controleer of de map bestaat, zo niet, maak deze aan
         if not os.path.exists(lunar_profiles_lunar_1_21_path):
             os.makedirs(lunar_profiles_lunar_1_21_path)
-            print(f"De map '{lunar_profiles_lunar_1_21_path}' is aangemaakt.")
+            log_message(f"De map '{lunar_profiles_lunar_1_21_path}' is aangemaakt.")
         else:
-            print(f"De map '{lunar_profiles_lunar_1_21_path}' bestaat al.")
+            log_message(f"De map '{lunar_profiles_lunar_1_21_path}' bestaat al.")
 
         # Controleer of de map bestaat, zo niet, maak deze aan
         if not os.path.exists(lunar_profiles_lunar_1_21_mods_path):
             os.makedirs(lunar_profiles_lunar_1_21_mods_path)
-            print(f"De map '{lunar_profiles_lunar_1_21_mods_path}' is aangemaakt.")
+            log_message(f"De map '{lunar_profiles_lunar_1_21_mods_path}' is aangemaakt.")
         else:
-            print(f"De map '{lunar_profiles_lunar_1_21_mods_path}' bestaat al.")
+            log_message(f"De map '{lunar_profiles_lunar_1_21_mods_path}' bestaat al.")
 
         # Controleer of de map bestaat, zo niet, maak deze aan
         if not os.path.exists(lunar_profiles_lunar_1_21_mods_fabric_1_21_1_path):
             os.makedirs(lunar_profiles_lunar_1_21_mods_fabric_1_21_1_path)
-            print(f"De map '{lunar_profiles_lunar_1_21_mods_fabric_1_21_1_path}' is aangemaakt.")
+            log_message(f"De map '{lunar_profiles_lunar_1_21_mods_fabric_1_21_1_path}' is aangemaakt.")
         else:
-            print(f"De map '{lunar_profiles_lunar_1_21_mods_fabric_1_21_1_path}' bestaat al.")
+            log_message(f"De map '{lunar_profiles_lunar_1_21_mods_fabric_1_21_1_path}' bestaat al.")
 
         # Controleer of de map bestaat, zo niet, maak deze aan
         if not os.path.exists(lunar_settings_path):
             os.makedirs(lunar_settings_path)
-            print(f"De map '{lunar_settings_path}' is aangemaakt.")
+            log_message(f"De map '{lunar_settings_path}' is aangemaakt.")
         else:
-            print(f"De map '{lunar_settings_path}' bestaat al.")
+            log_message(f"De map '{lunar_settings_path}' bestaat al.")
 
         # Controleer of de map bestaat, zo niet, maak deze aan
         if not os.path.exists(lunar_settings_game_path):
             os.makedirs(lunar_settings_game_path)
-            print(f"De map '{lunar_settings_game_path}' is aangemaakt.")
+            log_message(f"De map '{lunar_settings_game_path}' is aangemaakt.")
         else:
-            print(f"De map '{lunar_settings_game_path}' bestaat al.")
+            log_message(f"De map '{lunar_settings_game_path}' bestaat al.")
 
         lunar_del1 = os.path.join(lunar_settings_game_path, "features.json")
         lunar_del2 = os.path.join(lunar_settings_game_path, "global_options.json")
@@ -1079,34 +1087,34 @@ def vulcanoclient_1_21_1_lunar_installer():
         for file_path in [lunar_del1, lunar_del2, lunar_del3, lunar_del4, lunar_del5, lunar_del6]:
             if os.path.exists(file_path):
                 os.remove(file_path)
-                print(f"Bestand '{file_path}' is verwijderd.")
+                log_message(f"Bestand '{file_path}' is verwijderd.")
             else:
-                print(f"Bestand '{file_path}' bestaat niet.")
+                log_message(f"Bestand '{file_path}' bestaat niet.")
 
         # Controleer en verwijder de mappen (lunar_del7 en lunar_del8)
         for dir_path in [lunar_del7, lunar_del8]:
             if os.path.exists(dir_path):
                 shutil.rmtree(dir_path)
-                print(f"Map '{dir_path}' is verwijderd.")
+                log_message(f"Map '{dir_path}' is verwijderd.")
             else:
-                print(f"Map '{dir_path}' bestaat niet.")
+                log_message(f"Map '{dir_path}' bestaat niet.")
 
         # Download het zip bestand naar de huidige werkdirectory
         zip_url = "https://github.com/VulcanoSoftware/vulcanoclient/releases/download/1.2/vulcanoclient_lunar.zip"
         zip_filename = "vulcanoclient_lunar.zip"
         zip_path = os.path.join(os.getcwd(), zip_filename)
 
-        print("Bezig met downloaden van VulcanClient.zip...")
+        log_message("Bezig met downloaden van VulcanClient.zip...")
         response = requests.get(zip_url)
         with open(zip_path, 'wb') as f:
             f.write(response.content)
-        print("Download voltooid!")
+        log_message("Download voltooid!")
 
         # Unzip het bestand met zipfile
-        print("Bezig met uitpakken...")
+        log_message("Bezig met uitpakken...")
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             zip_ref.extractall(lunar_path)
-        print("Uitpakken voltooid!")
+        log_message("Uitpakken voltooid!")
 
         # Verplaats de bestanden naar de juiste locaties
         temp_extract_path = lunar_path
@@ -1116,7 +1124,7 @@ def vulcanoclient_1_21_1_lunar_installer():
         # Verplaats fabric-1.21.1 map
         if os.path.exists(fabric_source):
             shutil.copytree(fabric_source, lunar_profiles_lunar_1_21_mods_fabric_1_21_1_path, dirs_exist_ok=True)
-            print("fabric-1.21.1 map is verplaatst")
+            log_message("fabric-1.21.1 map is verplaatst")
 
         # Verplaats game bestanden
         if os.path.exists(game_source):
@@ -1127,7 +1135,7 @@ def vulcanoclient_1_21_1_lunar_installer():
                     shutil.copy2(source_item, dest_item)
                 elif os.path.isdir(source_item):
                     shutil.copytree(source_item, dest_item, dirs_exist_ok=True)
-            print("Game bestanden zijn verplaatst")
+            log_message("Game bestanden zijn verplaatst")
 
         # Verwijder het zip bestand en uitgepakte bestanden
         os.remove(zip_path)
@@ -1135,7 +1143,7 @@ def vulcanoclient_1_21_1_lunar_installer():
             shutil.rmtree(fabric_source)
         if os.path.exists(game_source):
             shutil.rmtree(game_source)
-        print("Tijdelijke bestanden zijn opgeruimd")
+        log_message("Tijdelijke bestanden zijn opgeruimd")
 
         update_progress(progress_bar, label, 100, "Installatie voltooid!", 
                        console, "Installatie succesvol afgerond!")
