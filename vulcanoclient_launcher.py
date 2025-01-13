@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 import subprocess
 import sys
 import os
@@ -7,6 +7,22 @@ import requests
 from PIL import Image, ImageTk
 import ctypes
 import platform
+
+def is_admin():
+    try:
+        if platform.system() == 'Windows':
+            return ctypes.windll.shell32.IsUserAnAdmin()
+        else:
+            return os.getuid() == 0  # 0 is root/admin op Unix systemen
+    except:
+        return False
+
+# Controleer admin rechten direct na imports
+if not is_admin():
+    root = tk.Tk()
+    root.withdraw()  # Verberg het hoofdvenster
+    messagebox.showerror("Fout", "Dit programma kan enkel worden uitgevoerd door een administrator")
+    sys.exit(1)
 
 def download_image():
     # URL van de afbeelding
@@ -24,8 +40,20 @@ def download_image():
     return image_path
 
 def run_as_admin():
-    vulcanoclient_path = os.path.join(os.path.dirname(__file__), "versions", "1.21.1", "vulcanoclient_1.21.1.exe")
+    # Controleer en maak de versions map aan indien nodig
+    versions_path = os.path.join(os.path.dirname(__file__), "versions")
+    version_specific_path = os.path.join(versions_path, "1.21.1")
     
+    # Maak de mappen aan als ze niet bestaan
+    os.makedirs(version_specific_path, exist_ok=True)
+    
+    vulcanoclient_path = os.path.join(version_specific_path, "vulcanoclient_1.21.1.exe")
+    
+    # Controleer of het executable bestand bestaat
+    if not os.path.exists(vulcanoclient_path):
+        print(f"Waarschuwing: VulcanoClient executable niet gevonden in: {vulcanoclient_path}")
+        return False
+        
     if sys.platform == 'win32':  # Windows
         try:
             shell32 = ctypes.windll.shell32
@@ -74,13 +102,24 @@ def run_as_admin():
     return True
 
 def start_vulcanoclient():
+    # Controleer en download/start versie 1.21.1
+    executable_path = os.path.join(os.path.dirname(__file__), "versions/1.21.1/vulcanoclient_1.21.1.exe")
+    
+    if not os.path.exists(executable_path):
+        print("VulcanoClient wordt gedownload...")
+        if download_version_1_21_1():
+            print("Download voltooid!")
+        else:
+            print("Download mislukt!")
+            return
+    
     # Probeer te starten met admin rechten
     success = run_as_admin()
     
     if not success:
         # Fallback: start zonder admin rechten
         try:
-            subprocess.Popen([sys.executable, os.path.join(os.path.dirname(__file__), "vulcanoclient.py")])
+            subprocess.Popen([executable_path])
         except Exception as e:
             print(f"Fallback start fout: {e}")
     
@@ -107,6 +146,53 @@ def cleanup_and_quit():
     
     # Sluit het programma
     root.destroy()
+
+def download_version_1_21_1():
+    """Download versie 1.21.1 van de VulcanoClient"""
+    url = "https://github.com/VulcanoSoftware/vulcanoclient/raw/refs/heads/main/versions/1.21.1/vulcanoclient_1.21.1.exe"
+    local_path = "versions/1.21.1/vulcanoclient_1.21.1.exe"
+    
+    # Maak de directory structuur aan als deze nog niet bestaat
+    os.makedirs(os.path.dirname(local_path), exist_ok=True)
+    
+    try:
+        response = requests.get(url, stream=True)
+        response.raise_for_status()  # Controleer op HTTP fouten
+        
+        with open(local_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        
+        # Start de client direct na succesvolle download
+        success = run_as_admin()
+        if not success:
+            # Fallback: probeer zonder admin rechten te starten
+            try:
+                subprocess.Popen([local_path])
+            except Exception as e:
+                print(f"Fout bij het starten na download: {e}")
+                return False
+        return True
+    except Exception as e:
+        print(f"Fout bij het downloaden: {e}")
+        return False
+
+def launch_1_21_1():
+    """Start versie 1.21.1 van de VulcanoClient"""
+    executable_path = "versions/1.21.1/vulcanoclient_1.21.1.exe"
+    
+    if not os.path.exists(executable_path):
+        print("Versie 1.21.1 wordt gedownload...")
+        if download_version_1_21_1():
+            print("Download voltooid!")
+        else:
+            print("Download mislukt!")
+            return
+    
+    try:
+        subprocess.Popen(executable_path)
+    except Exception as e:
+        print(f"Fout bij het starten: {e}")
 
 # Download de afbeelding voordat het programma start
 banner_path = download_image()
