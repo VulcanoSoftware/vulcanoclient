@@ -102,6 +102,8 @@ FABRIC_INSTALLER_URL = "https://github.com/VulcanoSoftware/vulcanoclient/raw/ref
 
 URL_CLIENT = "https://github.com/VulcanoSoftware/vulcanoclient/releases/download/1.2/vulcanoclient.zip"
 
+lunar_vulcanoclient_url = "https://github.com/VulcanoSoftware/vulcanoclient/releases/download/1.2/vulcanoclient_lunar.zip"
+
 IMAGE_URLS = {
     "step2": "https://www.dropbox.com/scl/fi/dqqdkg9szyunwpqm0jalv/step2.png?rlkey=0gkoxa2tcvsh1np6uo6lspu5r&st=2t5rirs5&dl=1",
     "step3": "https://www.dropbox.com/scl/fi/31yvorfga25deggv19c8n/step3.png?rlkey=71c3nc5mnk59otnmzx5f2flpp&st=4torqxn8&dl=1",
@@ -119,40 +121,30 @@ IMAGE_URLS = {
 }
 
 def kill_lunar_client():
-    systeem = platform.system().lower()
+    """Stopt Lunar Client processen voor elk besturingssysteem"""
+    os_name = platform.system()
     
-    print("Zoeken naar Lunar Client processen...")
-    
-    # Zoek naar alle Lunar Client gerelateerde processen
     for proc in psutil.process_iter(['pid', 'name']):
         try:
-            proces_naam = proc.info['name'].lower()
+            proc_name = proc.info['name'].lower()
             
-            # Verschillende namen waarop we moeten controleren
-            lunar_processen = [
-                'lunar client.exe',
-                'lunarclient',
-                'java',  # Voor het Java-proces van Lunar Client
-                'javaw.exe'
-            ]
+            # Verschillende proces namen per OS
+            lunar_processes = {
+                "Windows": ['lunar client.exe', 'javaw.exe'],
+                "Darwin": ['LunarClient', 'java'],
+                "Linux": ['lunarclient', 'java']
+            }.get(os_name, [])
             
-            if any(lunar_naam in proces_naam for lunar_naam in lunar_processen):
-                # Controleer of het Java-proces daadwerkelijk van Lunar Client is
-                if 'java' in proces_naam or 'javaw' in proces_naam:
-                    try:
-                        cmdline = proc.cmdline()
-                        if not any('lunar' in cmd.lower() for cmd in cmdline):
-                            continue
-                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+            if any(name in proc_name for name in lunar_processes):
+                if 'java' in proc_name:
+                    cmdline = proc.cmdline()
+                    if not any('lunar' in cmd.lower() for cmd in cmdline):
                         continue
-                
-                print(f"Lunar Client proces gevonden: {proces_naam} (PID: {proc.info['pid']})")
                 proc.kill()
-                print(f"Proces beëindigd!")
+                print(f"Proces beëindigd: {proc_name}")
                 
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             continue
-    print("Lunar Client processen zijn succesvol verwijderd.")
 
 def create_progress_window(title, maximum=100):
     def create_window():
@@ -319,13 +311,12 @@ def java_install():
             else:
                 print("\n!!! WAARSCHUWING !!!")
                 print("Het script wordt niet uitgevoerd als administrator op Windows.")
-                print("Dit kan problemen veroorzaken bij de installatie.")
-                print("Het wordt STERK AANGERADEN om het script als administrator uit te voeren.")
-                print("\nAls je toch wilt doorgaan zonder administrator rechten (niet aanbevolen),")
-                print("typ dan 'confirm' en druk op Enter. Anders sluit het venster af.")
-                
-                response = input("\nTyp 'confirm' om door te gaan: ")
-                if response.lower() != 'confirm':
+                response = messagebox.askokcancel("Waarschuwing", 
+                    "Het script wordt niet uitgevoerd als administrator op Windows.\n\n"
+                    "Dit kan problemen veroorzaken bij de installatie.\n"
+                    "Het wordt STERK AANGERADEN om het script als administrator uit te voeren.\n\n"
+                    "Wil je toch doorgaan zonder administrator rechten?")
+                if not response:
                     print("Installatie afgebroken. Start het programma opnieuw als administrator.")
                     sys.exit(1)
         
@@ -335,13 +326,12 @@ def java_install():
             else:
                 print("\n!!! WAARSCHUWING !!!")
                 print("Het script wordt niet uitgevoerd als root op Linux/macOS.")
-                print("Dit kan problemen veroorzaken bij de installatie.")
-                print("Het wordt STERK AANGERADEN om het script als root uit te voeren.")
-                print("\nAls je toch wilt doorgaan zonder root rechten (niet aanbevolen),")
-                print("typ dan 'confirm' en druk op Enter. Anders sluit het venster af.")
-                
-                response = input("\nTyp 'confirm' om door te gaan: ")
-                if response.lower() != 'confirm':
+                response = messagebox.askokcancel("Waarschuwing",
+                    "Het script wordt niet uitgevoerd als root op Linux/macOS.\n\n"
+                    "Dit kan problemen veroorzaken bij de installatie.\n"
+                    "Het wordt STERK AANGERADEN om het script als root uit te voeren.\n\n"
+                    "Wil je toch doorgaan zonder root rechten?")
+                if not response:
                     print("Installatie afgebroken. Start het programma opnieuw met sudo.")
                     sys.exit(1)
         
@@ -380,24 +370,29 @@ def detect_os():
 
 
 def get_minecraft_directory(launcher):
-    os_name = detect_os()
-
-    if launcher == "Minecraft":
-        if os_name == "Windows":
-            return os.path.expandvars(r"%APPDATA%\\.minecraft")
-        elif os_name == "Darwin": 
-            return os.path.expanduser("~/Library/Application Support/minecraft")
-        elif os_name == "Linux":
-            return os.path.expanduser("~/.minecraft")
-    elif launcher == "TLauncher":
-        if os_name == "Windows":
-            return os.path.expandvars(r"%APPDATA%\\.tlauncher\\.minecraft")
-        elif os_name == "Darwin":
-            return os.path.expanduser("~/Library/Application Support/tlauncher/.minecraft")
-        elif os_name == "Linux":
-            return os.path.expanduser("~/.tlauncher/.minecraft")
-
-    return None
+    """Geeft het juiste Minecraft pad terug voor elk besturingssysteem"""
+    os_name = platform.system()
+    home = os.path.expanduser("~")
+    
+    paths = {
+        "Windows": {
+            "Minecraft": os.path.join(os.getenv('APPDATA'), '.minecraft'),
+            "TLauncher": os.path.join(os.getenv('APPDATA'), '.tlauncher', '.minecraft'),
+            "Lunar": os.path.join(home, '.lunarclient')
+        },
+        "Darwin": {  # macOS
+            "Minecraft": os.path.join(home, 'Library', 'Application Support', 'minecraft'),
+            "TLauncher": os.path.join(home, 'Library', 'Application Support', 'tlauncher', '.minecraft'),
+            "Lunar": os.path.join(home, '.lunarclient')
+        },
+        "Linux": {
+            "Minecraft": os.path.join(home, '.minecraft'),
+            "TLauncher": os.path.join(home, '.tlauncher', '.minecraft'),
+            "Lunar": os.path.join(home, '.lunarclient')
+        }
+    }
+    
+    return paths.get(os_name, {}).get(launcher)
 
 def download_fabric_installer():
     try:
@@ -1100,7 +1095,7 @@ def vulcanoclient_1_21_1_lunar_installer():
                 log_message(f"Map '{dir_path}' bestaat niet.")
 
         # Download het zip bestand naar de huidige werkdirectory
-        zip_url = "https://github.com/VulcanoSoftware/vulcanoclient/releases/download/1.2/vulcanoclient_lunar.zip"
+        zip_url = lunar_vulcanoclient_url
         zip_filename = "vulcanoclient_lunar.zip"
         zip_path = os.path.join(os.getcwd(), zip_filename)
 
@@ -1234,69 +1229,20 @@ def install_winget_as_admin():
 
 
 def install_lunar():
-    progress_window, progress_bar, label, console = create_progress_window("Lunar Client Installatie")
-    try:
-        update_progress(progress_bar, label, 0, "Controleren of Winget beschikbaar is...", 
-                       console, "Start Lunar Client installatie proces...")
-        
-        # Controleer winget
-        try:
-            subprocess.run(['winget', '--version'], check=True, capture_output=True)
-            update_progress(progress_bar, label, 10, "Winget gevonden, start installatie...", 
-                          console, "Winget is beschikbaar, start Lunar Client installatie...")
-        except subprocess.CalledProcessError:
-            update_progress(progress_bar, label, 0, "Winget niet gevonden!", 
-                          console, "Fout: Winget is niet geïnstalleerd!")
-            time.sleep(2)
-            progress_window.destroy()
-            return
-        
-        # Start installatie
-        process = subprocess.Popen(
-            ['winget', 'install', '--id=Moonsworth.LunarClient', '-e'],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True,
-            bufsize=1
-        )
-        
-        progress = 10
-        while True:
-            output = process.stdout.readline()
-            error = process.stderr.readline()
-            
-            if output:
-                progress += 2
-                if progress > 95:
-                    progress = 95
-                update_progress(progress_bar, label, progress, "Bezig met installeren...", 
-                              console, output.strip())
-            if error:
-                update_progress(progress_bar, label, progress, "Waarschuwing ontvangen", 
-                              console, f"Waarschuwing: {error.strip()}")
-            
-            if output == '' and error == '' and process.poll() is not None:
-                break
-            
-            time.sleep(0.1)
-        
-        if process.returncode == 0:
-            update_progress(progress_bar, label, 100, "Lunar Client is succesvol geïnstalleerd!", 
-                          console, "Installatie succesvol afgerond!")
-            time.sleep(2)
-            progress_window.destroy()
-        else:
-            update_progress(progress_bar, label, 100, "Er is een fout opgetreden", 
-                          console, "Er is een fout opgetreden tijdens de installatie.")
-            time.sleep(2)
-            progress_window.destroy()
-            
-    except Exception as e:
-        update_progress(progress_bar, label, 100, "Er is een fout opgetreden!", 
-                       console, f"Fout: {str(e)}")
-        time.sleep(2)
-        progress_window.destroy()
-        messagebox.showerror("Fout", f"Er is een fout opgetreden: {str(e)}")
+    """Installeert Lunar Client voor het juiste besturingssysteem"""
+    os_name = platform.system()
+    
+    if os_name == "Windows":
+        subprocess.run(['winget', 'install', '--id=Moonsworth.LunarClient', '-e'], check=True)
+    
+    elif os_name == "Darwin":  # macOS
+        subprocess.run(['brew', 'install', '--cask', 'lunar-client'], check=True)
+    
+    elif os_name == "Linux":
+        # Voor Ubuntu/Debian-gebaseerde systemen
+        subprocess.run(['sudo', 'add-apt-repository', 'ppa:lunarclient/lunarclient'], check=True)
+        subprocess.run(['sudo', 'apt-get', 'update'], check=True)
+        subprocess.run(['sudo', 'apt-get', 'install', '-y', 'lunarclient'], check=True)
 
 def lunar_installer():
     # Gebruik de originele create_progress_window functie
