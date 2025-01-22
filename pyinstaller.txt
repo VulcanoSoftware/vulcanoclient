@@ -1,1 +1,1 @@
-pyinstaller -i client.ico --noconsole --onefile vulcanoclient_launcher.py
+pyinstaller -i client.ico --uac-admin --add-data "uac_manifest.xml;." --onefile --noconsole vulcanoclient_launcher.py
