@@ -18,6 +18,8 @@ from queue import Queue
 import psutil
 import pygame
 import signal
+import webbrowser
+import ssl
 
 class InfiniteProgressWindow:
     def __init__(self):
@@ -237,9 +239,9 @@ class JavaLoader:
 
 FABRIC_INSTALLER_URL = "https://github.com/VulcanoSoftware/vulcanoclient/raw/refs/heads/main/fabric-installer-0.11.2.jar"
 
-URL_CLIENT = "https://github.com/VulcanoSoftware/vulcanoclient/releases/download/1.2/vulcanoclient.zip"
+URL_CLIENT = "https://github.com/VulcanoSoftware/vulcanoclient/releases/download/1.6/vulcanoclient.zip"
 
-lunar_vulcanoclient_url = "https://github.com/VulcanoSoftware/vulcanoclient/releases/download/1.2/vulcanoclient_lunar.zip"
+lunar_vulcanoclient_url = "https://github.com/VulcanoSoftware/vulcanoclient/releases/download/1.6/vulcanoclient_lunar.zip"
 
 IMAGE_URLS = {
     "step2": "https://www.dropbox.com/scl/fi/dqqdkg9szyunwpqm0jalv/step2.png?rlkey=0gkoxa2tcvsh1np6uo6lspu5r&st=2t5rirs5&dl=1",
@@ -381,26 +383,23 @@ def install_choco():
     try:
         cloader = ChocoLoader()
         cloader.start_choco_loadingpg_win()
-        print("choco maken")  # Nieuwe print statement
-        # PowerShell commando om Chocolatey te installeren
+        print("choco maken")
         install_command = """
         Set-ExecutionPolicy Bypass -Scope Process -Force;
         [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072;
         iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
         """
         
-        # Voer het PowerShell commando uit
+        # Voeg CREATE_NO_WINDOW flag toe
         subprocess.run([
             'powershell.exe',
             '-NoProfile',
             '-ExecutionPolicy', 'Bypass',
             '-Command', install_command
-        ], check=True, capture_output=True)
+        ], check=True, capture_output=True, creationflags=subprocess.CREATE_NO_WINDOW)
         
-        # Wacht even om zeker te zijn dat de installatie is voltooid
         time.sleep(2)
         
-        # Ververs de PATH omgevingsvariabele
         os.environ['PATH'] = os.pathsep.join([
             os.environ['PATH'],
             os.path.join(os.environ.get('ProgramData', ''), 'chocolatey', 'bin')
@@ -441,7 +440,9 @@ def ensure_choco_installed():
 def install_ffmpeg():  
     print("FFmpeg wordt geïnstalleerd...")
     try:
-        subprocess.run(['choco', 'install', 'ffmpeg', '-y', '--no-progress'], check=True)
+        subprocess.run(['choco', 'install', 'ffmpeg', '-y', '--no-progress'], 
+                      check=True, 
+                      creationflags=subprocess.CREATE_NO_WINDOW)
         print("FFmpeg is succesvol geïnstalleerd!")
         return True
     except subprocess.CalledProcessError as e:
@@ -467,8 +468,14 @@ def java_install():
 
     def install_java_windows():
         try:
-            subprocess.run(['choco', 'install', 'openjdk', '--version=21', '-y'], check=True)
+            jloader = JavaLoader()
+            jloader.start_java_loadingpg_win()
+            subprocess.run(['choco', 'install', 'openjdk', '--version=21', '-y'], 
+                          check=True,
+                          creationflags=subprocess.CREATE_NO_WINDOW)
             print("Java 21 is succesvol geïnstalleerd op Windows.")
+            jloader.stop_java_loadingpg_win()
+            time.sleep(2)
         except subprocess.CalledProcessError as e:
             print(f"Fout bij het installeren van Java 21 op Windows: {e}")
             sys.exit(1)
@@ -573,10 +580,7 @@ def java_install():
             sys.exit()
         main()
         
-jloader = JavaLoader()
-jloader.start_java_loadingpg_win()
 java_install()
-jloader.stop_java_loadingpg_win()
 
 def detect_os():
     return platform.system()
@@ -619,7 +623,6 @@ def download_fabric_installer():
 def download_images():
     # SSL certificaat verificatie omzeilen voor macOS
     if platform.system() == "Darwin":
-        import ssl
         ssl._create_default_https_context = ssl._create_unverified_context
     
     for key, url in IMAGE_URLS.items():
@@ -905,10 +908,112 @@ def show_minecraft_instructions():
 def ask_for_vulcano_client():
     install_vulcanoclient()
 
+def show_tlauncher_download_dialog():
+    dialog = Toplevel()
+    dialog.title("TLauncher Installatie")
+    
+    # Venster grootte en positie
+    window_width = 400
+    window_height = 150
+    screen_width = dialog.winfo_screenwidth()
+    screen_height = dialog.winfo_screenheight()
+    x_position = (screen_width // 2) - (window_width // 2)
+    y_position = (screen_height // 2) - (window_height // 2)
+    dialog.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
+    
+    # Bericht label
+    Label(dialog, text="Installeer TLauncher voordat je verder gaat:", wraplength=350, pady=10).pack()
+    
+    # Link label met onderstreping en blauwe kleur
+    link_label = Label(dialog, text="https://tlauncher.org/en/", fg="blue", cursor="hand2")
+    link_label.pack(pady=5)
+    # Gebruik font met onderstreping op de juiste manier
+    link_label.configure(font=('TkDefaultFont', 10, 'underline'))
+    
+    # Functie om de link te openen
+    def open_link(event):
+        webbrowser.open("https://tlauncher.org/en/")
+    
+    link_label.bind("<Button-1>", open_link)
+    
+    # Sluit knop
+    ttk.Button(dialog, text="Sluiten", command=dialog.destroy).pack(pady=10)
+    
+    # Zorg dat dit venster focus heeft
+    dialog.transient(dialog.master)
+    dialog.grab_set()
+    dialog.focus_set()
+
 def install_fabric(launcher):
+    if launcher == "Minecraft":
+        # Vraag eerst of Minecraft Launcher is geïnstalleerd
+        minecraft_response = messagebox.askyesno("Minecraft Launcher Installatie", "Heb je de Minecraft Launcher al geïnstalleerd?")
+        if not minecraft_response:
+            try:
+                # Maak voortgangsvenster voor Minecraft Launcher installatie
+                progress_window, progress_bar, label, console = create_progress_window("Minecraft Launcher Setup")
+                update_progress(progress_bar, label, 0, "Start installatie proces...", 
+                              console, "Start Minecraft Launcher installatie proces...")
+                
+                update_progress(progress_bar, label, 20, "Controleren van Winget...", 
+                              console, "Controleren of Winget is geïnstalleerd...")
+                install_winget_as_admin()
+                
+                update_progress(progress_bar, label, 50, "Installeren van Minecraft Launcher...", 
+                              console, "Start Minecraft Launcher installatie...")
+                
+                # Installeer Minecraft Launcher via winget
+                process = subprocess.Popen(
+                    ['winget', 'install', '--id=Mojang.MinecraftLauncher', '-e'],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True,
+                    creationflags=subprocess.CREATE_NO_WINDOW
+                )
+                
+                progress = 60
+                while True:
+                    output = process.stdout.readline()
+                    error = process.stderr.readline()
+                    
+                    if output:
+                        progress += 5
+                        if progress > 90:
+                            progress = 90
+                        update_progress(progress_bar, label, progress, "Bezig met installeren...", 
+                                      console, output.strip())
+                    if error:
+                        update_progress(progress_bar, label, progress, "Waarschuwing ontvangen", 
+                                      console, f"Waarschuwing: {error.strip()}")
+                        
+                    if output == '' and error == '' and process.poll() is not None:
+                        break
+                
+                if process.returncode == 0:
+                    update_progress(progress_bar, label, 100, "Minecraft Launcher is succesvol geïnstalleerd!", 
+                                  console, "Minecraft Launcher installatie succesvol afgerond!")
+                else:
+                    update_progress(progress_bar, label, 100, "Er is een fout opgetreden", 
+                                  console, "Er is een fout opgetreden tijdens de installatie.")
+                
+                time.sleep(2)
+                progress_window.destroy()
+                
+            except Exception as e:
+                if 'progress_window' in locals():
+                    progress_window.destroy()
+                messagebox.showerror("Fout", f"Er is een fout opgetreden bij het installeren van Minecraft Launcher: {str(e)}")
+                return
+
+    # Ga verder met de normale Fabric installatie
     if launcher == "TLauncher":
-        ask_for_vulcano_client() 
-        show_tlauncher_instructions()
+        # Bestaande TLauncher logica
+        tlauncher_response = messagebox.askyesno("TLauncher Installatie", "Heb je TLauncher al geïnstalleerd?")
+        if tlauncher_response:
+            ask_for_vulcano_client()
+            show_tlauncher_instructions()
+        else:
+            show_tlauncher_download_dialog()
         return
 
     minecraft_dir = get_minecraft_directory(launcher)
@@ -923,9 +1028,9 @@ def install_fabric(launcher):
     try:
         command = ["java", "-jar", installer_path, "client", "-dir", minecraft_dir, "-mcversion", "1.21.1"]
         subprocess.run(command, check=True)
-        messagebox.showinfo("Succes", f"Fabric succesvol geïnstalleerd voor {launcher}!") 
+        messagebox.showinfo("Succes", f"Fabric succesvol geïnstalleerd voor {launcher}!")
         if launcher == "Minecraft":
-            ask_for_vulcano_client() 
+            ask_for_vulcano_client()
             show_minecraft_instructions()
     except subprocess.CalledProcessError as e:
         messagebox.showerror("Fout", f"Er is een fout opgetreden bij het installeren van Fabric: {e}")
@@ -1451,13 +1556,14 @@ def install_lunar():
     os_name = platform.system()
     
     if os_name == "Windows":
-        subprocess.run(['winget', 'install', '--id=Moonsworth.LunarClient', '-e'], check=True)
+        subprocess.run(['winget', 'install', '--id=Moonsworth.LunarClient', '-e'], 
+                      check=True, 
+                      creationflags=subprocess.CREATE_NO_WINDOW)
     
     elif os_name == "Darwin":  # macOS
         subprocess.run(['brew', 'install', '--cask', 'lunar-client'], check=True)
     
     elif os_name == "Linux":
-        # Voor Ubuntu/Debian-gebaseerde systemen
         subprocess.run(['sudo', 'add-apt-repository', 'ppa:lunarclient/lunarclient'], check=True)
         subprocess.run(['sudo', 'apt-get', 'update'], check=True)
         subprocess.run(['sudo', 'apt-get', 'install', '-y', 'lunarclient'], check=True)
@@ -1524,6 +1630,7 @@ def create_gui():
         infinite_progress_window.start()
         download_images()
         infinite_progress_window.stop()
+        time.sleep(2)
     else:
         download_images()
 
