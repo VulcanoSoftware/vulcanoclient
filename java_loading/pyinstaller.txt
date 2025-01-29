@@ -1,1 +1,1 @@
-pyinstaller --onefile --windowed --add-data "coffee.gif;." java_loading.py
+pyinstaller --onefile --windowed --add-data "coffee.gif;." --noconsole java_loading.py
