@@ -17,6 +17,7 @@ import threading
 from queue import Queue
 import psutil
 import pygame
+import signal
 
 class InfiniteProgressWindow:
     def __init__(self):
@@ -97,6 +98,142 @@ class InfiniteProgressWindow:
             time.sleep(0.03)
 
         pygame.quit()
+
+class ChocoLoader:
+    def __init__(self):
+        self._choco_process = None
+
+    def get_resource_path_choco_win(self, relative_path):
+        """ Krijg het absolute pad naar het resource bestand """
+        try:
+            # PyInstaller creates a temp folder and stores path in _MEIPASS
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = os.path.abspath(".")
+        return os.path.join(base_path, relative_path)
+
+    def download_choco_loader(self):
+        """Deze functie is niet meer nodig wanneer we de exe inbouwen met PyInstaller"""
+        return True
+
+    def start_choco_loadingpg_win(self):
+        if sys.platform != 'win32':
+            print("Choco loader is alleen beschikbaar voor Windows")
+            return
+            
+        if self._choco_process is None:
+            try:
+                choco_exe = self.get_resource_path_choco_win('choco_loading.exe')
+                self._choco_process = subprocess.Popen([choco_exe])
+                print("Choco loading proces gestart")
+            except Exception as e:
+                print(f"Fout bij het starten van choco_loading.exe: {e}")
+        else:
+            print("Choco loading proces draait al")
+
+    def stop_choco_loadingpg_win(self):
+        if self._choco_process is not None:
+            try:
+                # Krijg het proces en al zijn kinderen
+                parent = psutil.Process(self._choco_process.pid)
+                children = parent.children(recursive=True)
+                
+                # Stop eerst alle child processen
+                for child in children:
+                    try:
+                        child.kill()
+                    except psutil.NoSuchProcess:
+                        pass
+                        
+                # Stop daarna het hoofdproces
+                if sys.platform == 'win32':
+                    self._choco_process.kill()
+                else:
+                    self._choco_process.send_signal(signal.SIGKILL)
+                    
+                # Wacht tot alle processen zijn gestopt
+                psutil.wait_procs(children, timeout=3)
+                self._choco_process.wait(timeout=3)
+                
+                self._choco_process = None
+                print("Choco loading proces en alle subprocessen gestopt")
+            except Exception as e:
+                print(f"Fout bij het stoppen van choco_loading.exe: {e}")
+                try:
+                    self._choco_process.kill()
+                    self._choco_process = None
+                except:
+                    pass
+        else:
+            print("Geen actief choco loading proces gevonden")
+
+class JavaLoader:
+    def __init__(self):
+        self._java_process = None
+
+    def get_resource_path_java_win(self, relative_path):
+        """ Krijg het absolute pad naar het resource bestand """
+        try:
+            # PyInstaller creates a temp folder and stores path in _MEIPASS
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = os.path.abspath(".")
+        return os.path.join(base_path, relative_path)
+
+    def download_java_loader(self):
+        """Deze functie is niet meer nodig wanneer we de exe inbouwen met PyInstaller"""
+        return True
+
+    def start_java_loadingpg_win(self):
+        if sys.platform != 'win32':
+            print("Java loader is alleen beschikbaar voor Windows")
+            return
+            
+        if self._java_process is None:
+            try:
+                java_exe = self.get_resource_path_java_win('java_loading.exe')
+                self._java_process = subprocess.Popen([java_exe])
+                print("Java loading proces gestart")
+            except Exception as e:
+                print(f"Fout bij het starten van java_loading.exe: {e}")
+        else:
+            print("Java loading proces draait al")
+
+    def stop_java_loadingpg_win(self):
+        if self._java_process is not None:
+            try:
+                # Krijg het proces en al zijn kinderen
+                parent = psutil.Process(self._java_process.pid)
+                children = parent.children(recursive=True)
+                
+                # Stop eerst alle child processen
+                for child in children:
+                    try:
+                        child.kill()
+                    except psutil.NoSuchProcess:
+                        pass
+                        
+                # Stop daarna het hoofdproces
+                if sys.platform == 'win32':
+                    self._java_process.kill()
+                else:
+                    self._java_process.send_signal(signal.SIGKILL)
+                    
+                # Wacht tot alle processen zijn gestopt
+                psutil.wait_procs(children, timeout=3)
+                self._java_process.wait(timeout=3)
+                
+                self._java_process = None
+                print("Java loading proces en alle subprocessen gestopt")
+            except Exception as e:
+                print(f"Fout bij het stoppen van java_loading.exe: {e}")
+                try:
+                    self._java_process.kill()
+                    self._java_process = None
+                except:
+                    pass
+        else:
+            print("Geen actief java loading proces gevonden")
 
 FABRIC_INSTALLER_URL = "https://github.com/VulcanoSoftware/vulcanoclient/raw/refs/heads/main/fabric-installer-0.11.2.jar"
 
@@ -225,27 +362,100 @@ def run_task_with_progress(task_func, *args, **kwargs):
     
     root.after(100, check_queue)
 
-def java_install():
-    def is_choco_installed():
-        try:
-            subprocess.run(['choco', '--version'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            return True
-        except subprocess.CalledProcessError:
-            return False
+def is_choco_installed():
+    try:
+        # Controleer eerst of Chocolatey al is geïnstalleerd
+        choco_paths = [
+            os.path.join(os.environ.get('ProgramData', ''), 'chocolatey', 'bin', 'choco.exe'),
+            os.path.join(os.environ.get('ChocolateyInstall', ''), 'bin', 'choco.exe'),
+        ]
+        
+        for choco_path in choco_paths:
+            if os.path.exists(choco_path):
+                return True
+        return False
+    except Exception:
+        return False
 
-    def install_choco():
-        try:
-            subprocess.run(
-                ['powershell', '-Command', 
-                'Set-ExecutionPolicy Bypass -Scope Process -Force; '
-                '[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12; '
-                'iex ((New-Object System.Net.WebClient).DownloadString("https://community.chocolatey.org/install.ps1"))'],
-                check=True
-            )
-            print("Chocolatey is succesvol geïnstalleerd.")
-        except subprocess.CalledProcessError as e:
-            print(f"Fout bij het installeren van Chocolatey: {e}")
-            sys.exit(1)
+def install_choco():
+    try:
+        cloader = ChocoLoader()
+        cloader.start_choco_loadingpg_win()
+        print("choco maken")  # Nieuwe print statement
+        # PowerShell commando om Chocolatey te installeren
+        install_command = """
+        Set-ExecutionPolicy Bypass -Scope Process -Force;
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072;
+        iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+        """
+        
+        # Voer het PowerShell commando uit
+        subprocess.run([
+            'powershell.exe',
+            '-NoProfile',
+            '-ExecutionPolicy', 'Bypass',
+            '-Command', install_command
+        ], check=True, capture_output=True)
+        
+        # Wacht even om zeker te zijn dat de installatie is voltooid
+        time.sleep(2)
+        
+        # Ververs de PATH omgevingsvariabele
+        os.environ['PATH'] = os.pathsep.join([
+            os.environ['PATH'],
+            os.path.join(os.environ.get('ProgramData', ''), 'chocolatey', 'bin')
+        ])
+        
+        cloader.stop_choco_loadingpg_win()
+        time.sleep(2)
+        return True
+    except Exception as e:
+        print(f"Fout bij installeren van Chocolatey: {e}")
+        return False
+
+def ensure_choco_installed():
+    if not is_choco_installed():
+        print("Chocolatey is niet geïnstalleerd. Bezig met installeren...")
+        if install_choco():
+            print("Chocolatey is succesvol geïnstalleerd!")
+            # Installeer FFmpeg direct na succesvolle Chocolatey installatie
+            if install_ffmpeg():
+                print("FFmpeg is succesvol geïnstalleerd!")
+                return True
+            else:
+                print("Fout bij het installeren van FFmpeg")
+                return False
+        else:
+            print("Fout bij het installeren van Chocolatey")
+            return False
+    else:
+        # Als Chocolatey al geïnstalleerd is, controleer dan FFmpeg
+        if install_ffmpeg():
+            print("FFmpeg is succesvol geïnstalleerd!")
+            return True
+        else:
+            print("Fout bij het installeren van FFmpeg")
+            return False
+    return True
+
+def install_ffmpeg():  
+    print("FFmpeg wordt geïnstalleerd...")
+    try:
+        subprocess.run(['choco', 'install', 'ffmpeg', '-y', '--no-progress'], check=True)
+        print("FFmpeg is succesvol geïnstalleerd!")
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"Er is een fout opgetreden bij het installeren van FFmpeg: {e}")
+        return False
+    except FileNotFoundError:
+        print("Chocolatey is niet geïnstalleerd. Zorg ervoor dat Chocolatey eerst is geïnstalleerd.")
+        return False
+
+def java_install():
+    # Zorg eerst dat Chocolatey is geïnstalleerd
+    if not ensure_choco_installed():
+        messagebox.showerror("Fout", "Kon Chocolatey niet installeren. Java installatie kan niet doorgaan.")
+        return
 
     def is_java_installed():
         try:
@@ -339,9 +549,6 @@ def java_install():
             print("Java 21 is nog niet geïnstalleerd.")
 
             if os_platform == 'Windows':
-                if not is_choco_installed():
-                    print("Chocolatey is nog niet geïnstalleerd. Dit zal nu gebeuren...")
-                    install_choco()
                 install_java_windows()
             
             elif os_platform == 'Linux':
@@ -366,7 +573,10 @@ def java_install():
             sys.exit()
         main()
         
+jloader = JavaLoader()
+jloader.start_java_loadingpg_win()
 java_install()
+jloader.stop_java_loadingpg_win()
 
 def detect_os():
     return platform.system()
