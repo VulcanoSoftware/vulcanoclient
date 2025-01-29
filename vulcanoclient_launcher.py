@@ -7,6 +7,89 @@ import requests
 from PIL import Image, ImageTk
 import ctypes
 import platform
+import time
+import threading
+import pygame
+
+class InfiniteProgressWindow:
+    def __init__(self):
+        self.stop_event = None
+        self.thread = None
+
+    def start(self):
+        """Start de voortgangsbalk in een aparte thread."""
+        if self.thread is None or not self.thread.is_alive():
+            self.stop_event = threading.Event()  # Maak een nieuwe stop-event
+            self.thread = threading.Thread(target=self._create_window, daemon=True)
+            self.thread.start()
+            print("Voortgangsbalk gestart.")
+        else:
+            print("Voortgangsbalk is al actief.")
+
+    def stop(self):
+        """Stop de voortgangsbalk en sluit het venster."""
+        if self.thread is not None and self.thread.is_alive():
+            self.stop_event.set()  # Zet het stop-event
+            self.thread.join()  # Wacht tot de thread is gestopt
+            self.thread = None  # Reset de thread
+            print("Voortgangsbalk gestopt.")
+        else:
+            print("Voortgangsbalk is niet actief.")
+
+    def _create_window(self):
+        """Maak en beheer het venster in een aparte thread."""
+        pygame.init()
+
+        # Creëer een scherm voor de voortgangsbalk
+        screen = pygame.display.set_mode((500, 50))  # Venster met standaard vensterbalk
+        pygame.display.set_caption("VulcanoClient wordt gestart ... ")
+
+        # Kleurdefinities (stijl geïnspireerd op Windows 7)
+        background_color = (240, 240, 240)  # Lichtgrijze achtergrond
+        block_color = (0, 120, 215)  # Windows 7 blauw
+        highlight_color = (173, 216, 230)  # Lichtblauwe highlight
+
+        # Afmetingen van het bewegende blok
+        block_width = 100
+        block_height = 30
+        block_x = 0  # Startpositie
+        block_y = (screen.get_height() - block_height) // 2
+
+        # Variabele voor snelheid van het blok
+        speed = 5
+
+        # Hoofdloop voor het scherm
+        while not self.stop_event.is_set():
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    # Negeer de sluitgebeurtenis
+                    print("Sluiten van het venster is geblokkeerd.")
+                elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    # Optioneel: ESC-toets kan worden gebruikt om het venster te stoppen
+                    print("ESC-toets ingedrukt, venster wordt gestopt.")
+                    self.stop_event.set()
+
+            # Scherm verversen
+            screen.fill(background_color)
+
+            # Teken de achtergrondbalk (Windows 7 stijl met lichte gradient)
+            pygame.draw.rect(screen, highlight_color, (0, block_y, screen.get_width(), block_height))
+
+            # Teken het bewegende blok
+            pygame.draw.rect(screen, block_color, (block_x, block_y, block_width, block_height))
+
+            # Update de positie van het blok
+            block_x += speed
+            if block_x > screen.get_width():
+                block_x = -block_width  # Laat het blok opnieuw beginnen van links
+
+            # Update het scherm
+            pygame.display.flip()
+
+            # Wacht even voor de volgende update
+            time.sleep(0.03)
+
+        pygame.quit()
 
 def is_admin():
     try:
@@ -149,8 +232,12 @@ def cleanup_and_quit():
 
 def download_version_1_21_1():
     """Download versie 1.21.1 van de VulcanoClient"""
-    url = "https://github.com/VulcanoSoftware/vulcanoclient/raw/refs/heads/main/versions/1.21.1/vulcanoclient_1.21.1.exe"
+    url = "https://github.com/VulcanoSoftware/vulcanoclient/releases/download/1.6/vulcanoclient_1.21.1.exe"
     local_path = "versions/1.21.1/vulcanoclient_1.21.1.exe"
+    
+    # Maak een instantie van de voortgangsbalk
+    progress_window = InfiniteProgressWindow()
+    progress_window.start()
     
     # Maak de directory structuur aan als deze nog niet bestaat
     os.makedirs(os.path.dirname(local_path), exist_ok=True)
@@ -163,6 +250,9 @@ def download_version_1_21_1():
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
         
+        # Stop de voortgangsbalk
+        progress_window.stop()
+        
         # Start de client direct na succesvolle download
         success = run_as_admin()
         if not success:
@@ -174,6 +264,8 @@ def download_version_1_21_1():
                 return False
         return True
     except Exception as e:
+        # Stop de voortgangsbalk ook bij een fout
+        progress_window.stop()
         print(f"Fout bij het downloaden: {e}")
         return False
 
