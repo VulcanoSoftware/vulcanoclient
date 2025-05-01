@@ -1,0 +1,1 @@
+pyinstaller -i version_runner.ico --onefile --windowed --add-data "java_loading.exe;." --add-data "choco_loading.exe;." --noconsole vulcanoclient_1.21.4.py

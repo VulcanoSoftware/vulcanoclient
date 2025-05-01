@@ -1586,6 +1586,10 @@ def create_gui():
 
     close_button = ttk.Button(root, text="Afsluiten", command=lambda: delete_images_on_close(root))
     close_button.pack(pady=10)
+    
+    # Add version label to bottom right corner
+    version_label = tk.Label(root, text="1.21.1", font=("Arial", 10))
+    version_label.pack(side=tk.BOTTOM, anchor=tk.SE, padx=10, pady=5)
 
     root.protocol("WM_DELETE_WINDOW", disable_close)
 

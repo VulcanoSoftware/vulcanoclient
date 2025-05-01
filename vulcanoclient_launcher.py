@@ -286,6 +286,141 @@ def launch_1_21_1():
     except Exception as e:
         print(f"Fout bij het starten: {e}")
 
+def download_version_1_21_4():
+    """Download versie 1.21.4 van de VulcanoClient"""
+    url = "https://github.com/VulcanoSoftware/vulcanoclient/releases/download/1.6/vulcanoclient_1.21.4.exe"
+    local_path = "versions/1.21.4/vulcanoclient_1.21.4.exe"
+    
+    # Maak een instantie van de voortgangsbalk
+    progress_window = InfiniteProgressWindow()
+    progress_window.start()
+    
+    # Maak de directory structuur aan als deze nog niet bestaat
+    os.makedirs(os.path.dirname(local_path), exist_ok=True)
+    
+    try:
+        response = requests.get(url, stream=True)
+        response.raise_for_status()  # Controleer op HTTP fouten
+        
+        with open(local_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        
+        # Stop de voortgangsbalk
+        progress_window.stop()
+        
+        # Start de client direct na succesvolle download
+        success = run_as_admin_1_21_4()
+        if not success:
+            # Fallback: probeer zonder admin rechten te starten
+            try:
+                subprocess.Popen([local_path])
+            except Exception as e:
+                print(f"Fout bij het starten na download: {e}")
+                return False
+        return True
+    except Exception as e:
+        # Stop de voortgangsbalk ook bij een fout
+        progress_window.stop()
+        print(f"Fout bij het downloaden: {e}")
+        return False
+
+def run_as_admin_1_21_4():
+    # Controleer en maak de versions map aan indien nodig
+    versions_path = os.path.join(os.path.dirname(__file__), "versions")
+    version_specific_path = os.path.join(versions_path, "1.21.4")
+    
+    # Maak de mappen aan als ze niet bestaan
+    os.makedirs(version_specific_path, exist_ok=True)
+    
+    vulcanoclient_path = os.path.join(version_specific_path, "vulcanoclient_1.21.4.exe")
+    
+    # Controleer of het executable bestand bestaat
+    if not os.path.exists(vulcanoclient_path):
+        print(f"Waarschuwing: VulcanoClient executable niet gevonden in: {vulcanoclient_path}")
+        return False
+        
+    if sys.platform == 'win32':  # Windows
+        try:
+            shell32 = ctypes.windll.shell32
+            params = f'"{vulcanoclient_path}"'
+            ret = shell32.ShellExecuteW(
+                None, 
+                "runas",
+                vulcanoclient_path,  # Direct het .exe bestand uitvoeren ipv via python
+                None,               # Geen extra parameters nodig
+                os.path.dirname(vulcanoclient_path),
+                7
+            )
+            if ret <= 32:
+                raise Exception(f"ShellExecute failed with code {ret}")
+        except Exception as e:
+            print(f"Windows admin start fout: {e}")
+            return False
+            
+    elif sys.platform == 'darwin':  # macOS
+        try:
+            cmd = [
+                'osascript',
+                '-e',
+                f'do shell script "python3 \'{vulcanoclient_path}\'" with administrator privileges'
+            ]
+            subprocess.Popen(cmd)
+        except Exception as e:
+            print(f"macOS admin start fout: {e}")
+            return False
+            
+    else:  # Linux
+        try:
+            # Probeer eerst pkexec (aanbevolen voor desktop omgevingen)
+            if os.system('which pkexec >/dev/null 2>&1') == 0:
+                subprocess.Popen(['pkexec', sys.executable, vulcanoclient_path])
+            # Anders, probeer gksudo
+            elif os.system('which gksudo >/dev/null 2>&1') == 0:
+                subprocess.Popen(['gksudo', '--', sys.executable, vulcanoclient_path])
+            # Als laatste optie, gebruik sudo
+            else:
+                subprocess.Popen(['sudo', sys.executable, vulcanoclient_path])
+        except Exception as e:
+            print(f"Linux admin start fout: {e}")
+            return False
+            
+    return True
+
+def start_vulcanoclient_1_21_4():
+    # Controleer en download/start versie 1.21.4
+    executable_path = os.path.join(os.path.dirname(__file__), "versions/1.21.4/vulcanoclient_1.21.4.exe")
+    
+    if not os.path.exists(executable_path):
+        print("VulcanoClient 1.21.4 wordt gedownload...")
+        if download_version_1_21_4():
+            print("Download voltooid!")
+        else:
+            print("Download mislukt!")
+            return
+    
+    # Probeer te starten met admin rechten
+    success = run_as_admin_1_21_4()
+    
+    if not success:
+        # Fallback: start zonder admin rechten
+        try:
+            subprocess.Popen([executable_path])
+        except Exception as e:
+            print(f"Fallback start fout: {e}")
+    
+    # Functie om op te ruimen en af te sluiten
+    def cleanup_and_close():
+        try:
+            banner_path = os.path.join(os.path.dirname(__file__), "banner.png")
+            if os.path.exists(banner_path):
+                os.remove(banner_path)
+        except Exception as e:
+            print(f"Fout bij verwijderen banner: {e}")
+        root.destroy()
+    
+    root.after(1, cleanup_and_close)
+
 # Download de afbeelding voordat het programma start
 banner_path = download_image()
 
@@ -364,6 +499,15 @@ version_button = ttk.Button(
     style="TButton"
 )
 version_button.pack(pady=20)
+
+# Nieuwe knop voor versie 1.21.4
+version_button_new = ttk.Button(
+    content_frame,
+    text="Start VulcanoClient v1.21.4",
+    command=start_vulcanoclient_1_21_4,
+    style="TButton"
+)
+version_button_new.pack(pady=10)
 
 # Afsluiten knop
 close_button = ttk.Button(
