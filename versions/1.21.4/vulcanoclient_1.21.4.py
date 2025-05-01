@@ -214,19 +214,19 @@ URL_CLIENT = "https://github.com/VulcanoSoftware/vulcanoclient/releases/download
 lunar_vulcanoclient_url = "https://github.com/VulcanoSoftware/vulcanoclient/releases/download/1.6/vulcanoclient_lunar_1.21.4.zip"
 
 IMAGE_URLS = {
-    "step2": "https://www.dropbox.com/scl/fi/dqqdkg9szyunwpqm0jalv/step2.png?rlkey=0gkoxa2tcvsh1np6uo6lspu5r&st=2t5rirs5&dl=1",
-    "step3": "https://www.dropbox.com/scl/fi/31yvorfga25deggv19c8n/step3.png?rlkey=71c3nc5mnk59otnmzx5f2flpp&st=4torqxn8&dl=1",
-    "step4": "https://www.dropbox.com/scl/fi/4cobagvk6v2gjj6p00hxu/step4.png?rlkey=34lx0wntdcb4jc1u2ldqnern8&st=ku5rp7dr&dl=1",
-    "step2_mc": "https://www.dropbox.com/scl/fi/aa7yrqozvf5rj0p249ppx/step2_mc.png?rlkey=re6l7ctybklev8ibk0hvyzncy&st=03dscwik&dl=1",
-    "step3_mc": "https://www.dropbox.com/scl/fi/2dlgpejy71fxj1rhri7pl/step3_mc.png?rlkey=y3xrc1k35vtob794r2tgtkta0&st=jzjyp79l&dl=1",
+    "step2": "https://www.dropbox.com/scl/fi/xmnxbnyr3uce4n11stw9t/step2.png?rlkey=fobem96q5mmq5b1z9399dllna&st=0u0lczd7&dl=1",
+    "step3": "https://www.dropbox.com/scl/fi/82x4n8eedgeav6wmpjan2/step3.png?rlkey=ufppnxmmxeesvxry49ode5jxj&st=be55fwv2&dl=1",
+    "step4": "https://www.dropbox.com/scl/fi/m3l706anzt4pb4jfftwew/step4.png?rlkey=jmkogk6a6v1w29ag6ofpxt4h5&st=rd0rdxl3&dl=1",
+    "step2_mc": "https://www.dropbox.com/scl/fi/u1ohhcmfsylkj3rdos3wt/step2_mc.png?rlkey=96e38y6cdwo8qr8qn40sscwi9&st=wbmnr71w&dl=1",
+    "step3_mc": "https://www.dropbox.com/scl/fi/6f0jefu117d9cpa03r1fc/step3_mc.png?rlkey=x7v15sxpb0yfuqh22cmen8hq3&st=k1nkj33w&dl=1",
     "example_image": "https://www.dropbox.com/scl/fi/157ujxatwxkztlni2eog4/8d22d753007f68c48eea910386b79ab3.png?rlkey=bkspxpwq57t1ngzd7m72qm3gk&st=b5qeindq&dl=1",
     "step1_lunar": "https://www.dropbox.com/scl/fi/f4dek84e3tvm9yonojvk1/step1_lunar.png?rlkey=atuct9d9g4688e7vrqheilmde&st=umvf44z5&dl=1",
     "step2_lunar": "https://www.dropbox.com/scl/fi/c9lln24pgtmzncmses7mg/step2_lunar.png?rlkey=b6bkjfzyml7lct2x5hzwhyofs&st=t5jtbks7&dl=1",
     "step3_lunar": "https://www.dropbox.com/scl/fi/2xxoirttlzmfl0yd7wriw/step3_lunar.png?rlkey=zvonzwmbv6qoz2yymvoe0rsgj&st=z1xt2lvw&dl=1",
     "step4_lunar": "https://www.dropbox.com/scl/fi/uc06daqgagpbj6sjz9usl/step4_lunar.png?rlkey=a26lgnlzt4jznltyex1jn46we&st=q9wa88hv&dl=1",
-    "step5_lunar": "https://www.dropbox.com/scl/fi/lrb53ezi4tq4g2e4dqu2v/step5_lunar.png?rlkey=19z6ffcws5dzse8srsudoai5u&st=iu4uxdhi&dl=1",
+    "step5_lunar": "https://www.dropbox.com/scl/fi/qdqs7tm4ud2ws5phwvc4c/step5_lunar.png?rlkey=chgsul3zjocto091kk7appihp&st=ocimjpgg&dl=1",
     "step6_lunar": "https://www.dropbox.com/scl/fi/1thidh1126htl0o7full8/step6_lunar.png?rlkey=8mop2plmtg8s5zcar1jhx48s1&st=xag1f74y&dl=1",
-    "step7_lunar": "https://www.dropbox.com/scl/fi/7r58it8b8qxhmkksiyv2r/step7_lunar.png?rlkey=o6cvqsb5lf9ukzujeiqspxoc0&st=asml51d6&dl=1"
+    "step7_lunar": "https://www.dropbox.com/scl/fi/b39j4e55nvfm2mr3l2fyv/step7_lunar.png?rlkey=6dw9t494kwgl86ekbqjhc3ryn&st=1hwfantu&dl=1"
 }
 
 def kill_lunar_client():

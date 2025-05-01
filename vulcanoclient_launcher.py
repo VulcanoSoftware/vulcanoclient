@@ -232,7 +232,7 @@ def cleanup_and_quit():
 
 def download_version_1_21_1():
     """Download versie 1.21.1 van de VulcanoClient"""
-    url = "https://github.com/VulcanoSoftware/vulcanoclient/releases/download/1.6/vulcanoclient_1.21.1.exe"
+    url = "https://github.com/VulcanoSoftware/vulcanoclient/releases/download/1.7/vulcanoclient_1.21.1.exe"
     local_path = "versions/1.21.1/vulcanoclient_1.21.1.exe"
     
     # Maak een instantie van de voortgangsbalk
@@ -288,7 +288,7 @@ def launch_1_21_1():
 
 def download_version_1_21_4():
     """Download versie 1.21.4 van de VulcanoClient"""
-    url = "https://github.com/VulcanoSoftware/vulcanoclient/releases/download/1.6/vulcanoclient_1.21.4.exe"
+    url = "https://github.com/VulcanoSoftware/vulcanoclient/releases/download/1.7/vulcanoclient_1.21.4.exe"
     local_path = "versions/1.21.4/vulcanoclient_1.21.4.exe"
     
     # Maak een instantie van de voortgangsbalk
